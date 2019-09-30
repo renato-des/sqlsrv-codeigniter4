@@ -19,6 +19,24 @@ class Forge extends \CodeIgniter\Database\Forge
 	//--------------------------------------------------------------------
 
 	/**
+	 * CREATE TABLE IF statement
+	 *
+	 * @var string
+	 */
+	protected $createTableIfStr = "IF NOT EXISTS (SELECT * FROM sysobjects WHERE ID = object_id(N'%s') AND OBJECTPROPERTY(id, N'IsUserTable') = 1)\nCREATE TABLE";
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * DROP TABLE IF EXISTS statement
+	 *
+	 * @var string
+	 */
+	protected $dropTableIfStr = "IF EXISTS (SELECT * FROM sysobjects WHERE ID = object_id(N'%s') AND OBJECTPROPERTY(id, N'IsUserTable') = 1)\nDROP TABLE";
+
+	//--------------------------------------------------------------------
+
+	/**
 	 * Create database
 	 *
 	 * @param string $db_name
@@ -70,22 +88,14 @@ class Forge extends \CodeIgniter\Database\Forge
 	/**
 	 * UNSIGNED support
 	 *
-	 * @var    array
+	 * @var	array
 	 */
-	protected $_unsigned = [
-		'TINYINT',
-		'SMALLINT',
-		'MEDIUMINT',
-		'INT',
-		'INTEGER',
-		'BIGINT',
-		'REAL',
-		'DOUBLE',
-		'DOUBLE PRECISION',
-		'FLOAT',
-		'DECIMAL',
-		'NUMERIC',
-	];
+	protected $unsigned		= array(
+		'TINYINT'	=> 'SMALLINT',
+		'SMALLINT'	=> 'INT',
+		'INT'		=> 'BIGINT',
+		'REAL'		=> 'FLOAT',
+	);
 
 	/**
 	 * NULL value representation in CREATE/ALTER TABLE statements
@@ -192,7 +202,6 @@ class Forge extends \CodeIgniter\Database\Forge
 		return $this->db->escapeIdentifiers($field['name'])
 		       .(empty($field['new_name']) ? '' : ' '.$this->db->escapeIdentifiers($field['new_name']))
 		       .' '.$field['type'].$field['length']
-		       .$field['unsigned']
 		       .$field['null']
 		       .$field['default']
 		       .$field['auto_increment']
@@ -244,5 +253,54 @@ class Forge extends \CodeIgniter\Database\Forge
 	}
 
 	//--------------------------------------------------------------------
+
+	/**
+	 * Field attribute AUTO_INCREMENT
+	 *
+	 * @param array &$attributes
+	 * @param array &$field
+	 *
+	 * @return void
+	 */
+	protected function _attributeAutoIncrement(array &$attributes, array &$field)
+	{
+		if ( ! empty($attributes['AUTO_INCREMENT']) && $attributes['AUTO_INCREMENT'] === TRUE && stripos($field['type'], 'int') !== FALSE)
+		{
+			$field['auto_increment'] = ' IDENTITY(1,1)';
+		}
+	}
+
+	//--------------------------------------------------------------------
+
+	/**
+	 * Field attribute TYPE
+	 *
+	 * Performs a data type mapping between different databases.
+	 *
+	 * @param array &$attributes
+	 *
+	 * @return void
+	 */
+	protected function _attributeType(array &$attributes)
+	{
+		if (isset($attributes['CONSTRAINT']) && strpos($attributes['TYPE'], 'INT') !== FALSE)
+		{
+			unset($attributes['CONSTRAINT']);
+		}
+
+		switch (strtoupper($attributes['TYPE']))
+		{
+			case 'MEDIUMINT':
+				$attributes['TYPE'] = 'INTEGER';
+				$attributes['UNSIGNED'] = FALSE;
+				break;
+			case 'INTEGER':
+				$attributes['TYPE'] = 'INT';
+				break;
+			default:
+				break;
+		}
+	}
+
 
 }
