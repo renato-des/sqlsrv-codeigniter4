@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace CodeIgniter\Database\SQLSRV;
 
@@ -35,6 +35,5 @@ class Utils extends \CodeIgniter\Database\BaseUtils
 	{
 		throw new DatabaseException('Unsupported feature of the database platform you are using.');
 	}
-
 	//--------------------------------------------------------------------
 }
